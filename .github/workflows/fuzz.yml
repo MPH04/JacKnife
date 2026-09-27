@@ -71,7 +71,7 @@ jobs:
         run: bash scripts/run_fuzzer.sh
 
       - name: Collect state
-        run: python3 scripts/collect_state.py --crash-dir runs/crashes --out-dir dist/artifact --source github-actions
+        run: PYTHONPATH=.python3 scripts/collect_state.py --crash-dir runs/crashes --out-dir dist/artifact --source github-actions
 
       - name: Validate artifact before upload
         run: python3 scripts/validate_artifact.py --dir dist/artifact --check-targets
