@@ -1,0 +1,27 @@
+{
+  "commit_sha": null,
+  "crash_files_seen": 188,
+  "duration_seconds": 15,
+  "file_hashes": {
+    "state.json": "sha256:072eb1601992edfe85a3ea7299f8bcacf846438bfa27e28dc0c62fbec9060a10"
+  },
+  "github_run_id": null,
+  "repo": "MPH04/JacKnife",
+  "run_date": "2026-09-27T04:49:04Z",
+  "run_id": "fallback",
+  "schema_version": "1",
+  "seed": 1,
+  "source": "local",
+  "target_hashes": {
+    "target/fuzz_jkpacket.c": "sha256:912c44999946c0a5f4175606e274029e09622b47d357a12b2525b8e201bdc0f8",
+    "target/jkpacket.c": "sha256:6e04e8832aefb8c46418f44f858fae5e24043e70de4d8a96a495b7a1b7bd9c72",
+    "target/jkpacket.h": "sha256:4f828d8481d7d7883920bffdc769331c356238fcfeedbe84ba2b24b71d084c14"
+  },
+  "tool_versions": {
+    "clang": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+    "jaclang": "0.9.11",
+    "libfuzzer": "libclang_rt.fuzzer (clang)",
+    "python": "3.12.3"
+  },
+  "workflow": "fuzz.yml"
+}
