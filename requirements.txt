@@ -1,0 +1,2 @@
+jaclang==0.9.11 \
+    --hash=sha256:cc7bd0d6d9353cbe73b3378d11a36f0e6f22eba56fb5269f60e6977f0ed8f67d

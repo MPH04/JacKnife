@@ -1,0 +1,115 @@
+name: fuzz
+
+# run-name is display text. GitHub does not re-evaluate the input as an
+# expression, and no shell step interpolates it. The validator still rejects
+# the input before any command uses it.
+run-name: fuzz-${{ inputs.run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run id ([A-Za-z0-9][A-Za-z0-9._-]{0,63})"
+        required: true
+        type: string
+      duration_seconds:
+        description: "Seconds to fuzz (1-300)"
+        required: false
+        default: "90"
+        type: string
+      seed:
+        description: "libFuzzer seed (0-4294967295)"
+        required: false
+        default: "1"
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: jacknife-fuzz
+  cancel-in-progress: false
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    outputs:
+      artifact_name: ${{ steps.validated.outputs.artifact_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate dispatch inputs
+        id: validated
+        env:
+          JACKNIFE_INPUT_RUN_ID: ${{ inputs.run_id }}
+          JACKNIFE_INPUT_DURATION: ${{ inputs.duration_seconds }}
+          JACKNIFE_INPUT_SEED: ${{ inputs.seed }}
+          JACKNIFE_GITHUB_REPOSITORY: ${{ github.repository }}
+          JACKNIFE_GITHUB_SHA: ${{ github.sha }}
+          JACKNIFE_GITHUB_RUN_ID: ${{ github.run_id }}
+          JACKNIFE_GITHUB_SERVER_URL: ${{ github.server_url }}
+        run: python3 scripts/validate_workflow_inputs.py
+
+      - name: Install toolchain
+        run: bash scripts/install_toolchain.sh
+
+      - name: Install Jaclang
+        run: |
+          python3 -m pip install --user --break-system-packages --require-hashes -r requirements.txt
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build fuzzer
+        run: bash scripts/build_fuzzer.sh
+
+      - name: Fuzz
+        run: bash scripts/run_fuzzer.sh
+
+      - name: Collect state
+        run: python3 scripts/collect_state.py --crash-dir runs/crashes --out-dir dist/artifact --source github-actions
+
+      - name: Validate artifact before upload
+        run: python3 scripts/validate_artifact.py --dir dist/artifact --check-targets
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.validated.outputs.artifact_name }}
+          path: dist/artifact/
+          retention-days: 7
+          if-no-files-found: error
+          overwrite: false
+          include-hidden-files: false
+
+  # Attestation is wired. It has not been executed from this authoring
+  # environment, so a passing attest job is Not verified until a human
+  # dispatch is checked with scripts/verify_attestation.py.
+  # continue-on-error keeps an attest failure from hiding the fuzz artifact.
+  attest:
+    needs: fuzz
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.fuzz.outputs.artifact_name }}
+          path: downloaded
+
+      - name: Attest state and manifest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            downloaded/state.json
+            downloaded/manifest.json
