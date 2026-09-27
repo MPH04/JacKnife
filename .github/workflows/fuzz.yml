@@ -71,14 +71,14 @@ jobs:
         run: bash scripts/run_fuzzer.sh
 
       - name: Collect state
-        run: PYTHONPATH=.python3 scripts/collect_state.py --crash-dir runs/crashes --out-dir dist/artifact --source github-actions
+        run: PYTHONPATH=. python3 scripts/collect_state.py --crash-dir runs/crashes --out-dir dist/artifact --source github-actions
 
       - name: Validate artifact before upload
         run: python3 scripts/validate_artifact.py --dir dist/artifact --check-targets
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
+        with: 
           name: ${{ steps.validated.outputs.artifact_name }}
           path: dist/artifact/
           retention-days: 7
